@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Local debug",
+            "request": "launch",
+            "type": "go",
+            "mode": "exec",
+            "console": "integratedTerminal",
+            "env": {
+                "CATTLE_DEV_MODE": "true",
+            },
+            "program": "${workspaceRoot}/cilium-egress-operator",
+            "args": [
+                "--debug"
+            ]
+        }
+    ]
+}

@@ -2,14 +2,11 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: cilium-egress-operator
-  namespace: cattle-system
+  namespace: {{ .Release.Namespace }}
 rules:
   - apiGroups: ['']
-    resources: ['secrets']
-    verbs: ['get', 'list', 'create', 'watch']
-  - apiGroups: ['cce.pandaria.io']
-    resources: ['cceclusterconfigs']
+    resources: ['nodes']
+    verbs: ['get', 'list', 'watch']
+  - apiGroups: ['cilium.io']
+    resources: ['ciliumegressgatewaypolicies']
     verbs: ['get', 'list', 'update', 'watch']
-  - apiGroups: ['cce.pandaria.io']
-    resources: ['cceclusterconfigs/status']
-    verbs: ['update']

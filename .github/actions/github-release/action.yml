@@ -1,0 +1,22 @@
+name: "GitHub Release"
+description: "Generate GitHub Release"
+runs:
+  using: "composite"
+  steps:
+    - name: Add release notes
+      shell: bash
+      run: |
+        set -x
+        # Ensure GitHub Release Exists
+        EXPECTED_TITLE="${{ env.TAG }}"
+        EXTRA_OPTIONS=""
+        if [[ ${{ env.TAG }} = *rc* ]] || [[ ${{ env.TAG }} = *beta* ]] || [[ ${{ env.TAG }} = *alpha* ]]; then
+          EXPECTED_TITLE="Pre-release ${{ env.TAG }}"
+          EXTRA_OPTIONS="${EXTRA_OPTIONS} --prerelease"
+        fi
+        EXISTS=$(gh release list -R ${{ github.repository }} --json name --jq ".[] | select(.name == \"${EXPECTED_TITLE}\")")
+        if [[ "$EXISTS" == "" ]]; then
+          gh release create "${{ env.TAG }}" -R ${{ github.repository }} --title "$EXPECTED_TITLE" --generate-notes $EXTRA_OPTIONS
+        else
+          gh release edit ${{ env.TAG }} -R ${{ github.repository }} --title "$EXPECTED_TITLE" $EXTRA_OPTIONS
+        fi

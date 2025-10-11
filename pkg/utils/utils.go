@@ -3,9 +3,27 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/json"
+	"io"
 	"math/big"
+	"os"
 	"strings"
+
+	"github.com/STARRY-S/simple-logrus-formatter/pkg/formatter"
+	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/writer"
 )
+
+var (
+	hostname string
+)
+
+func init() {
+	var err error
+	hostname, err = os.Hostname()
+	if err != nil {
+		logrus.Errorf("failed to get os hostname: %v", err)
+	}
+}
 
 func Print(a any) string {
 	b, _ := json.MarshalIndent(a, "", "  ")
@@ -53,4 +71,38 @@ func Value[T valueTypes](p *T) T {
 		return *new(T)
 	}
 	return *p
+}
+
+func SetupLogrus(hideTime bool) {
+	formatter := &formatter.Formatter{
+		NoColors: false,
+	}
+	if hideTime {
+		formatter.TimestampFormat = "-"
+	}
+	logrus.SetFormatter(formatter)
+	logrus.SetOutput(io.Discard)
+	logrus.AddHook(&writer.Hook{
+		// Send logs with level higher than warning to stderr.
+		Writer: os.Stderr,
+		LogLevels: []logrus.Level{
+			logrus.PanicLevel,
+			logrus.FatalLevel,
+			logrus.ErrorLevel,
+			logrus.WarnLevel,
+		},
+	})
+	logrus.AddHook(&writer.Hook{
+		// Send info, debug and trace logs to stdout.
+		Writer: os.Stdout,
+		LogLevels: []logrus.Level{
+			logrus.TraceLevel,
+			logrus.InfoLevel,
+			logrus.DebugLevel,
+		},
+	})
+}
+
+func Hostname() string {
+	return hostname
 }

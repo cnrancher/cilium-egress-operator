@@ -1,26 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cce-config-operator
-  namespace: cattle-system
+  name: cilium-egress-operator
+  namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      ke.cattle.io/operator: cce
+      app: cilium-egress-operator
   template:
     metadata:
       labels:
-        ke.cattle.io/operator: cce
+        app: cilium-egress-operator
     spec:
       nodeSelector: {{ include "linux-node-selector" . | nindent 8 }}
-{{- if .Values.nodeSelector }}
-{{ toYaml .Values.nodeSelector | indent 8 }}
-{{- end }}
-      tolerations: {{ include "linux-node-tolerations" . | nindent 8 }}
-{{- if .Values.tolerations }}
-{{ toYaml .Values.tolerations | indent 8 }}
-{{- end }}
       serviceAccountName: cilium-egress-operator
       {{- if .Values.priorityClassName }}
       priorityClassName: "{{.Values.priorityClassName}}"
@@ -30,7 +23,7 @@ spec:
         runAsUser: 1007
       containers:
       - name: cilium-egress-operator
-        image: {{ template "system_default_registry" . }}{{ .Values.cceOperator.image.repository }}:{{ .Values.cceOperator.image.tag }}
+        image: {{ template "system_default_registry" . }}{{ .Values.ciliumEgressOperator.image.repository }}:{{ .Values.ciliumEgressOperator.image.tag }}
         imagePullPolicy: IfNotPresent
         env:
         - name: HTTP_PROXY
@@ -39,3 +32,7 @@ spec:
           value: {{ .Values.httpsProxy }}
         - name: NO_PROXY
           value: {{ .Values.noProxy }}
+        - name: CATTLE_RESYNC_DEFAULT
+          value: {{ .Values.ciliumEgressOperator.resyncDefault | quote }}
+        - name: CATTLE_DEV_MODE
+          value: {{ .Values.ciliumEgressOperator.debug | quote }}

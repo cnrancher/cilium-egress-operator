@@ -22,10 +22,4 @@ sed -i \
     -e 's/tag:.*/tag: '${TAG}'/' \
     build/charts/cilium-egress-operator/values.yaml
 
-sed -i \
-    -e 's/^version:.*/version: '${TAG/v/}'/' \
-    -e 's/appVersion:.*/appVersion: '${TAG/v/}'/' \
-    build/charts/cilium-egress-operator-crd/Chart.yaml
-
 helm package -d ./dist/artifacts ./build/charts/cilium-egress-operator
-helm package -d ./dist/artifacts ./build/charts/cilium-egress-operator-crd

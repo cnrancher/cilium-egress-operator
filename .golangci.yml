@@ -6,7 +6,6 @@ run:
 linters:
   default: none
   enable:
-    - dupl
     - goconst
     - gosec
     - govet
@@ -18,7 +17,11 @@ linters:
     - revive
     - unconvert
     - whitespace
+    - staticcheck
   settings:
+    gosec:
+      excludes:
+        - G115 # https://github.com/moby/moby/issues/48358#issuecomment-2323339603
     importas:
       alias:
         - pkg: k8s.io/api/core/v1
@@ -31,6 +34,8 @@ linters:
           alias: utilruntime
         - pkg: sigs.k8s.io/controller-runtime/pkg/client
           alias: runtimeclient
+        - pkg: github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2
+          alias: ciliumv2
       no-unaliased: true
     revive:
       rules:
@@ -57,6 +62,18 @@ linters:
         - name: unreachable-code
         - name: redefines-builtin-id
         - name: unexported-return
+    misspell:
+      locale: US
+      ignore-rules: []
+      extra-words: []
+      mode: default
+    staticcheck:
+      dot-import-whitelist:
+        - fmt
+      initialisms: ["ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS", "SIP", "RTP", "AMQP", "DB", "TS"]
+      http-status-code-whitelist: ["200", "400", "404", "500"]
+      checks:
+        - all
   exclusions:
     generated: lax
     presets:
@@ -65,23 +82,32 @@ linters:
       - legacy
       - std-error-handling
     rules:
+      # Permit package names
       - linters:
           - revive
-        path: mock(\w+)/doc.go$
-        text: 'var-naming: don''t use an underscore in package name'
+        text: 'avoid meaningless package names'
+      # Permit insecure skip tls verify
       - linters:
           - gosec
-        path: pkg/eks/create.go$
-        text: weak cryptographic primitive
-      - linters:
-          - gosec
-        path: pkg/eks/create.go$
-        text: TLS InsecureSkipVerify set true.
-      - linters:
-          - revive
         path: pkg/*
-        text: avoid meaningless package names
+        text: TLS InsecureSkipVerify may be true
+      # Permit codegen generated CRD file permission
+      - linters:
+          - gosec
+        path: pkg/codegen/*
+        text: Expect WriteFile permissions to be 0600 or less
+      # Permit codegen unused function
+      - linters:
+          - unused
+        path: pkg/codegen/*
+        text: 'is unused'
+      # Permit codegen using deprecated K8s API
+      - linters:
+          - staticcheck
+        path: pkg/codegen/*
+        text: This API is deprecated
     paths:
+      - zz_generated_*
       - third_party$
       - builtin$
       - examples$
@@ -92,6 +118,7 @@ formatters:
   exclusions:
     generated: lax
     paths:
+      - zz_generated_*
       - third_party$
       - builtin$
       - examples$
