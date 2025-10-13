@@ -1,7 +1,14 @@
-# Cilium Egress Operator
+<div align="center">
+  <h1>Cilium Egress Operator</h1>
+  <p>
+    <a href="https://github.com/cnrancher/cilium-egress-operator/actions/workflows/ci.yaml"><img alt="CI" src="https://github.com/cnrancher/cilium-egress-operator/actions/workflows/ci.yaml/badge.svg"></a>
+    <a href="https://goreportcard.com/report/github.com/cnrancher/cilium-egress-operator"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/cnrancher/cilium-egress-operator"></a>
+    <a href="https://github.com/cnrancher/cilium-egress-operator/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/cnrancher/cilium-egress-operator?color=default&label=release&logo=github"></a>
+    <a href="https://github.com/cnrancher/cilium-egress-operator/releases"><img alt="GitHub pre-release" src="https://img.shields.io/github/v/release/cnrancher/cilium-egress-operator?include_prereleases&label=pre-release&logo=github"></a>
+    <img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg">
+  </p>
+</div>
 
-[![CI](https://github.com/cnrancher/cilium-egress-operator/actions/workflows/ci.yaml/badge.svg)](https://github.com/cnrancher/cilium-egress-operator/actions/workflows/ci.yaml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/cnrancher/cilium-egress-operator)](https://goreportcard.com/report/github.com/cnrancher/cilium-egress-operator)
 
 Operator for automatically switching [Cilium Egress Gateway Endpoints](https://docs.cilium.io/en/stable/network/egress-gateway/egress-gateway/).
 
