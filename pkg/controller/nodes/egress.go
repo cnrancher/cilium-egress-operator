@@ -60,42 +60,43 @@ func (h *handler) ensureEgressGatewayAvailable() error {
 			}
 		}
 
-		if len(p.Spec.EgressGateways) > 0 {
-			gws := p.DeepCopy().Spec.EgressGateways
-			availableGWs := make([]ciliumv2.EgressGateway, 0, len(gws))
-			for _, gw := range gws {
-				if gw.EgressIP == "" {
-					continue
-				}
-				if gateway.NodeAvailable(gw.EgressIP) {
-					availableGWs = append(availableGWs, gw)
-				} else {
-					logrus.WithFields(fieldEgressPolicy(p)).
-						Infof("Egress IP %q is not available", gw.EgressIP)
-				}
-			}
-			if len(availableGWs) == len(gws) {
-				logrus.WithFields(fieldEgressPolicy(p)).
-					Debugf("Policy EgressGateways are available, skip update")
-			} else {
-				if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-					pp, err := h.cegpClient.Get(p.Name, metav1.GetOptions{})
-					if err != nil {
-						return err
-					}
-					pp = pp.DeepCopy()
-					pp.Spec.EgressGateways = availableGWs
-					_, err = h.cegpClient.Update(pp)
-					return err
-				}); err != nil {
-					return fmt.Errorf("failed to update %q egressGateways: %w",
-						p.Name, err)
-				}
-				logrus.WithFields(fieldEgressPolicy(p)).
-					Infof("Update CiliumEgressGatewayPolicy %q egressGateways",
-						p.Name)
-			}
-		}
+		// TODO: Cilium 1.18+ supports egressGateways configuration
+		// if len(p.Spec.EgressGateways) > 0 {
+		// 	gws := p.DeepCopy().Spec.EgressGateways
+		// 	availableGWs := make([]ciliumv2.EgressGateway, 0, len(gws))
+		// 	for _, gw := range gws {
+		// 		if gw.EgressIP == "" {
+		// 			continue
+		// 		}
+		// 		if gateway.NodeAvailable(gw.EgressIP) {
+		// 			availableGWs = append(availableGWs, gw)
+		// 		} else {
+		// 			logrus.WithFields(fieldEgressPolicy(p)).
+		// 				Infof("Egress IP %q is not available", gw.EgressIP)
+		// 		}
+		// 	}
+		// 	if len(availableGWs) == len(gws) {
+		// 		logrus.WithFields(fieldEgressPolicy(p)).
+		// 			Debugf("Policy EgressGateways are available, skip update")
+		// 	} else {
+		// 		if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// 			pp, err := h.cegpClient.Get(p.Name, metav1.GetOptions{})
+		// 			if err != nil {
+		// 				return err
+		// 			}
+		// 			pp = pp.DeepCopy()
+		// 			pp.Spec.EgressGateways = availableGWs
+		// 			_, err = h.cegpClient.Update(pp)
+		// 			return err
+		// 		}); err != nil {
+		// 			return fmt.Errorf("failed to update %q egressGateways: %w",
+		// 				p.Name, err)
+		// 		}
+		// 		logrus.WithFields(fieldEgressPolicy(p)).
+		// 			Infof("Update CiliumEgressGatewayPolicy %q egressGateways",
+		// 				p.Name)
+		// 	}
+		// }
 	}
 
 	return nil
