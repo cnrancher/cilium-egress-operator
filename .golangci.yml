@@ -110,7 +110,12 @@ linters:
       - linters:
           - gosec
         path: main.go
-        text:  Profiling endpoint is automatically exposed on
+        text: Profiling endpoint is automatically exposed on
+      # Permit profiling server no support for timeouts
+      - linters:
+          - gosec
+        path: main.go
+        text: serve function that has no support for setting timeouts
     paths:
       - zz_generated_*
       - third_party$

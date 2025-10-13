@@ -155,7 +155,9 @@ func isKubeVIPControlPlaneNode(node *corev1.Node, podCache corecontroller.PodCac
 		return false, nil
 	}
 
-	pods, err := podCache.List("", labels.Everything())
+	pods, err := podCache.List("", labels.SelectorFromSet(labels.Set{
+		kubeVIPPodLabelKey: kubeVIPPodLabelValue,
+	}))
 	if err != nil {
 		return false, fmt.Errorf("failed to list pod from cache: %w", err)
 	}
@@ -169,12 +171,7 @@ func isKubeVIPControlPlaneNode(node *corev1.Node, podCache corecontroller.PodCac
 		if p.Spec.NodeName != node.Name {
 			continue
 		}
-		if len(p.Labels) == 0 {
-			continue
-		}
-		if p.Labels[kubeVIPPodLabelKey] == kubeVIPPodLabelValue {
-			return true, nil
-		}
+		return true, nil
 	}
 	return false, nil
 }

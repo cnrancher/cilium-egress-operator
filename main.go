@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -66,13 +65,7 @@ func main() {
 	if profileServer {
 		go func() {
 			logrus.Infof("Go pprof server listen on: http://%v", profileServerAddr)
-			server := &http.Server{
-				Addr:              profileServerAddr,
-				ReadHeaderTimeout: 3 * time.Second,
-				ReadTimeout:       10 * time.Second,
-				WriteTimeout:      10 * time.Second,
-			}
-			if err := server.ListenAndServe(); err != nil {
+			if err := http.ListenAndServe(profileServerAddr, nil); err != nil {
 				logrus.Errorf("Failed to start pprof server: %v", err)
 			}
 		}()
