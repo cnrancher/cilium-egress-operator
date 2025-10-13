@@ -34,6 +34,10 @@ func (s *store) availableIPs() []string {
 func (s *store) recordNodeIP(ip string, available bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if !available {
+		delete(s.nodeIPs, ip)
+		return
+	}
 	s.nodeIPs[ip] = available
 }
 
