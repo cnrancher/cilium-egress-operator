@@ -3,10 +3,27 @@ description: "Generate GitHub Release"
 runs:
   using: "composite"
   steps:
+    - name: Install Helm
+      env:
+        HELM_URL: https://get.helm.sh/helm-${{ env.HELM_VERSION }}-linux-amd64.tar.gz
+      shell: bash
+      run: |
+        set -ex
+        curl ${{ env.HELM_URL }} | tar xvzf - --strip-components=1 -C /tmp/ && \
+        sudo mv /tmp/helm /usr/bin/helm && \
+        sudo chmod +x /usr/bin/helm
+    - name: Install gh
+      shell: bash
+      run: |
+        set -ex
+        mkdir -p /tmp/gh
+        curl -fsL https://github.com/cli/cli/releases/download/v${{ env.GH_CLI_VERSION }}/gh_${{ env.GH_CLI_VERSION }}_linux_amd64.tar.gz | tar xvzf - --strip-components=1 -C /tmp/gh
+        sudo mv /tmp/gh/bin/gh /usr/bin/gh
+        sudo chmod +x /usr/bin/gh
     - name: Add release notes
       shell: bash
       run: |
-        set -x
+        set -ex
         # Ensure GitHub Release Exists
         EXPECTED_TITLE="${{ env.TAG }}"
         EXTRA_OPTIONS=""
@@ -20,3 +37,15 @@ runs:
         else
           gh release edit ${{ env.TAG }} -R ${{ github.repository }} --title "$EXPECTED_TITLE" $EXTRA_OPTIONS
         fi
+    - name: Upload Charts
+      shell: bash
+      run: |
+        set -ex
+
+        ./scripts/chart.sh
+
+        for f in $(find dist/artifacts/ -name '*.tgz'); do
+          echo "Uploading $f to GitHub Release $TAG"
+          gh release upload $TAG $f --clobber
+        done
+        echo "Charts successfully uploaded to GitHub release $TAG"

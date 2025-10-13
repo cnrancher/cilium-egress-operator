@@ -3,7 +3,8 @@
 set -euo pipefail
 
 if ! hash helm 2>/dev/null; then
-    exit 0
+    echo "helm command not found"
+    exit 1
 fi
 
 cd $(dirname $0)/..
