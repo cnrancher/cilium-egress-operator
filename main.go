@@ -5,6 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
+
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/cnrancher/cilium-egress-operator/pkg/controller/nodes"
 	"github.com/cnrancher/cilium-egress-operator/pkg/controller/wrangler"
@@ -15,12 +19,14 @@ import (
 )
 
 var (
-	masterURL      string
-	kubeconfigFile string
-	worker         int
-	version        bool
-	versionString  string
-	debug          bool
+	masterURL         string
+	kubeconfigFile    string
+	worker            int
+	version           bool
+	versionString     string
+	profileServer     bool
+	profileServerAddr string
+	debug             bool
 )
 
 func init() {
@@ -40,6 +46,8 @@ func main() {
 		"The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.IntVar(&worker, "worker", 10, "Number of controller worker threads (1-50).")
 	flag.BoolVar(&version, "version", false, "Show version.")
+	flag.BoolVar(&profileServer, "profile-server", false, "Enable the Go pprof profiling HTTP server.")
+	flag.StringVar(&profileServerAddr, "profile-server-addr", "127.0.0.1:6060", "Profiling server listen address.")
 	flag.BoolVar(&debug, "debug", false, "Enable the debug output.")
 	flag.Parse()
 
@@ -49,11 +57,25 @@ func main() {
 	}
 	if debug || os.Getenv("CATTLE_DEV_MODE") != "" {
 		logrus.SetLevel(logrus.DebugLevel)
-		logrus.Debugf("debug output enabled")
+		logrus.Debugf("Debug output enabled")
 	}
 	if worker > 50 || worker < 1 {
-		logrus.Warnf("invalid worker: %v, should be 1-50, set to default: 10", worker)
+		logrus.Warnf("Invalid worker: %v, should be 1-50, set to default: 10", worker)
 		worker = 10
+	}
+	if profileServer {
+		go func() {
+			logrus.Infof("Go pprof server listen on: http://%v", profileServerAddr)
+			server := &http.Server{
+				Addr:              profileServerAddr,
+				ReadHeaderTimeout: 3 * time.Second,
+				ReadTimeout:       10 * time.Second,
+				WriteTimeout:      10 * time.Second,
+			}
+			if err := server.ListenAndServe(); err != nil {
+				logrus.Errorf("Failed to start pprof server: %v", err)
+			}
+		}()
 	}
 
 	// This will load the kubeconfig file in a style the same as kubectl
@@ -62,8 +84,13 @@ func main() {
 		logrus.Fatalf("Error building kubeconfig: %v", err)
 	}
 
-	wctx := wrangler.NewContextOrDie(cfg)
-	wctx.WaitForCacheSyncOrDie(ctx)
+	wctx, err := wrangler.NewContext(cfg)
+	if err != nil {
+		logrus.Fatalf("Failed to build wrangler context: %v", err)
+	}
+	if err = wctx.WaitForCacheSync(ctx); err != nil {
+		logrus.Fatalf("Failed to wait for cache synced: %v", err)
+	}
 
 	nodes.Register(ctx, wctx)
 	wctx.OnLeader(func(ctx context.Context) error {

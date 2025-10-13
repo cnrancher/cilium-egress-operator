@@ -2,6 +2,7 @@ package wrangler
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/rancher/lasso/pkg/controller"
@@ -37,21 +38,24 @@ type Context struct {
 	controllerLock sync.Mutex
 }
 
-func NewContextOrDie(
-	restCfg *rest.Config,
-) *Context {
-	// panic on error
-	core := core.NewFactoryFromConfigOrDie(restCfg)
-	cilium := cilium.NewFactoryFromConfigOrDie(restCfg)
+func NewContext(restCfg *rest.Config) (*Context, error) {
+	core, err := core.NewFactoryFromConfig(restCfg)
+	if err != nil {
+		return nil, fmt.Errorf("core factory: %w", err)
+	}
+	cilium, err := cilium.NewFactoryFromConfig(restCfg)
+	if err != nil {
+		return nil, fmt.Errorf("cilium factory: %w", err)
+	}
 
 	controllerFactory, err := controller.NewSharedControllerFactoryFromConfig(restCfg, runtime.NewScheme())
 	if err != nil {
-		logrus.Fatalf("failed to build shared controller factory: %v", err)
+		return nil, fmt.Errorf("failed to build shared controller factory: %w", err)
 	}
 
 	k8s, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
-		logrus.Fatalf("kubernetes.NewForConfig: %v", err)
+		return nil, fmt.Errorf("kubernetes.NewForConfig: %w", err)
 	}
 	leadership := leader.NewManager(controllerNamespace, controllerName, k8s)
 	c := &Context{
@@ -67,28 +71,30 @@ func NewContextOrDie(
 	c.starters = append(c.starters,
 		core, cilium)
 
-	return c
+	return c, nil
 }
 
 func (c *Context) OnLeader(f func(ctx context.Context) error) {
 	c.leadership.OnLeader(f)
 }
 
-func (c *Context) WaitForCacheSyncOrDie(ctx context.Context) {
+func (c *Context) WaitForCacheSync(ctx context.Context) error {
 	if err := c.ControllerFactory.SharedCacheFactory().Start(ctx); err != nil {
-		logrus.Fatalf("failed to start shared cache factory: %v", err)
+		return fmt.Errorf("failed to start shared cache factory: %w", err)
 	}
 	ok := c.ControllerFactory.SharedCacheFactory().WaitForCacheSync(ctx)
 	succeed := true
 	for k, v := range ok {
 		if !v {
-			logrus.Errorf("failed to wait for [%v] cache sync", k)
+			logrus.Errorf("Failed to wait for [%v] cache sync", k)
 			succeed = false
 		}
 	}
-	if succeed {
-		logrus.Infof("Informer cache synced")
+	if !succeed {
+		return fmt.Errorf("failed to wait for cache sync")
 	}
+	logrus.Infof("Informer cache synced")
+	return nil
 }
 
 // Run starts the leader-election process and block.
