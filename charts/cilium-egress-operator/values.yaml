@@ -2,12 +2,13 @@ global:
   cattle:
     systemDefaultRegistry: ""
 
-ciliumEgressOperator:
+operator:
   resyncDefault: ""
   debug: ""
   image:
     repository: cnrancher/cilium-egress-operator
     tag: v0.1.0
+    pullPolicy: IfNotPresent
 
 httpProxy: ""
 httpsProxy: ""

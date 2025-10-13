@@ -15,7 +15,8 @@
     helm upgrade --install \
         -n kube-system \
         --set global.cattle.systemDefaultRegistry='registry.rancher.cn' \
-        --set ciliumEgressOperator.debug=true \
+        --set operator.debug=true \
+        --set operator.image.pullPolicy=IfNotPresent \
         cilium-egress-operator \
         ./cilium-egress-operator-*.tgz
     ```
@@ -43,3 +44,15 @@
 
 1. Poweroff the Master node corresponding to the above policy and check the operator log.  
     After the node becomes unavailable, the `egressGateway.egressIP` will be automatically updated to another available master node.
+
+    ```log
+    [08:00:05] [DEBU] [IP:192.168.0.10] [Node:cilium-vip-1-master-hmwtd-rjvf2] Node is kube-vip master node
+    [08:00:05] [INFO] [IP:192.168.0.10] [Node:cilium-vip-1-master-hmwtd-rjvf2] Node is not ready: NodeStatusUnknown
+    [08:00:05] [INFO] [IP:192.168.0.10] [Node:cilium-vip-1-master-hmwtd-rjvf2] Node "cilium-vip-1-master-hmwtd-rjvf2" is not ready
+    [08:00:05] [INFO] [EGP:test-policy] Egress IP "192.168.0.10" is not available
+    [08:00:05] [INFO] [EGP:test-policy] Update CiliumEgressGatewayPolicy "test-policy" egressGateway.egressIP to "192.168.0.11"
+    [08:00:05] [DEBU] [IP:192.168.0.10] [Node:cilium-vip-1-master-hmwtd-rjvf2] Node is kube-vip master node
+    [08:00:05] [INFO] [IP:192.168.0.10] [Node:cilium-vip-1-master-hmwtd-rjvf2] Node is not ready: NodeStatusUnknown
+    [08:00:05] [INFO] [IP:192.168.0.10] [Node:cilium-vip-1-master-hmwtd-rjvf2] Node "cilium-vip-1-master-hmwtd-rjvf2" is not ready
+    [08:00:05] [DEBU] [EGP:test-policy] Policy EgressIP "192.168.0.11" is available
+    ```

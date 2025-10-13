@@ -23,8 +23,8 @@ spec:
         runAsUser: 1007
       containers:
       - name: cilium-egress-operator
-        image: {{ template "system_default_registry" . }}{{ .Values.ciliumEgressOperator.image.repository }}:{{ .Values.ciliumEgressOperator.image.tag }}
-        imagePullPolicy: IfNotPresent
+        image: {{ template "system_default_registry" . }}{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}
+        imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
         env:
         - name: HTTP_PROXY
           value: {{ .Values.httpProxy }}
@@ -33,6 +33,6 @@ spec:
         - name: NO_PROXY
           value: {{ .Values.noProxy }}
         - name: CATTLE_RESYNC_DEFAULT
-          value: {{ .Values.ciliumEgressOperator.resyncDefault | quote }}
+          value: {{ .Values.operator.resyncDefault | quote }}
         - name: CATTLE_DEV_MODE
-          value: {{ .Values.ciliumEgressOperator.debug | quote }}
+          value: {{ .Values.operator.debug | quote }}
