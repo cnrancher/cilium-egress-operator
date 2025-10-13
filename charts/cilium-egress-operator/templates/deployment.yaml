@@ -4,7 +4,7 @@ metadata:
   name: cilium-egress-operator
   namespace: {{ .Release.Namespace }}
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: cilium-egress-operator

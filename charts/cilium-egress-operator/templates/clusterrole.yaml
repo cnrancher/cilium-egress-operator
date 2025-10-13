@@ -5,8 +5,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
 rules:
   - apiGroups: ['']
-    resources: ['nodes']
+    resources: ['nodes', 'pods']
     verbs: ['get', 'list', 'watch']
+  - apiGroups: ['coordination.k8s.io']
+    resources: ['leases']
+    verbs: ['get', 'list', 'update', 'watch']
   - apiGroups: ['cilium.io']
     resources: ['ciliumegressgatewaypolicies']
     verbs: ['get', 'list', 'update', 'watch']
