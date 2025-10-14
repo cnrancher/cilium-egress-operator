@@ -84,12 +84,12 @@ func InitNodeIP(wctx *wrangler.Context) error {
 		if isNodeActive(node) {
 			logrus.WithFields(fieldsNode(node)).
 				Debugf("Initialize node IP to available record")
-			gateway.RecordNodeIP(nodeIP(node), true)
+			gateway.RecordNode(nodeIP(node), nodeHostname(node), true)
 		}
 	}
 	if logrus.GetLevel() >= logrus.DebugLevel {
-		logrus.Debugf("Initialized available node IP: %v",
-			utils.Print(gateway.GetAvailableIPs()))
+		logrus.Debugf("Initialized available nodes: %v",
+			utils.Print(gateway.AvailableNodes()))
 	}
 
 	return nil
@@ -124,7 +124,7 @@ func (h *handler) sync(_ string, node *corev1.Node) (*corev1.Node, error) {
 
 	if node.DeletionTimestamp != nil {
 		logrus.WithFields(fieldsNode(node)).Infof("Node %q is being deleted", node.Name)
-		gateway.RecordNodeIP(nodeIP(node), false)
+		gateway.RecordNode(nodeIP(node), "", false)
 
 		// Update cilium egress gateway on node delete
 		if err := h.ensureEgressGatewayAvailable(); err != nil {
@@ -136,10 +136,10 @@ func (h *handler) sync(_ string, node *corev1.Node) (*corev1.Node, error) {
 	if isNodeActive(node) {
 		// Node condition is ready
 		logrus.WithFields(fieldsNode(node)).Debugf("Node %q is ready", node.Name)
-		gateway.RecordNodeIP(nodeIP(node), true)
+		gateway.RecordNode(nodeIP(node), nodeHostname(node), true)
 	} else {
 		logrus.WithFields(fieldsNode(node)).Infof("Node %q is not ready", node.Name)
-		gateway.RecordNodeIP(nodeIP(node), false)
+		gateway.RecordNode(nodeIP(node), "", false)
 	}
 
 	// Ensure all cilium egress gateways available
@@ -201,6 +201,13 @@ func nodeIP(node *corev1.Node) string {
 		return ""
 	}
 	return ip
+}
+
+func nodeHostname(node *corev1.Node) string {
+	if node == nil || len(node.Labels) == 0 {
+		return ""
+	}
+	return node.Labels[hostnameLabelKey]
 }
 
 func fieldsNode(node *corev1.Node) logrus.Fields {

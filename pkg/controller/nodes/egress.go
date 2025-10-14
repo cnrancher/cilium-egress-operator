@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	ciliumv2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	slimv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cnrancher/cilium-egress-operator/pkg/internal/gateway"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,6 +15,8 @@ import (
 const (
 	watchAnnotationPrefix = "egress.cilium.pandaria.io/monitored"
 	watchAnnotationValue  = "true"
+
+	hostnameLabelKey = "kubernetes.io/hostname"
 )
 
 func (h *handler) ensureEgressGatewayAvailable() error {
@@ -24,9 +27,9 @@ func (h *handler) ensureEgressGatewayAvailable() error {
 	if len(policies) == 0 {
 		return nil
 	}
-	availableIPs := gateway.GetAvailableIPs()
-	if len(availableIPs) == 0 {
-		logrus.Warnf("Skip check EgressPolicy EgressIP: no available node IP")
+	availableIP, availableHostname := gateway.AvailableNode()
+	if availableIP == "" || availableHostname == "" {
+		logrus.Warnf("Skip check EgressPolicy EgressIP: no available master node IP")
 		return nil
 	}
 	for _, p := range policies {
@@ -34,72 +37,58 @@ func (h *handler) ensureEgressGatewayAvailable() error {
 			continue
 		}
 		if p.Spec.EgressGateway != nil && p.Spec.EgressGateway.EgressIP != "" {
-			ip := p.Spec.EgressGateway.EgressIP
-			if gateway.NodeAvailable(ip) {
+			ip := getPolicyIP(p)
+			hostname := getPolicyHostname(p)
+			if gateway.NodeAvailable(ip, hostname) {
 				logrus.WithFields(fieldEgressPolicy(p)).
-					Debugf("Policy EgressIP %q is available", ip)
+					Debugf("Policy EgressIP [%v] HostName [%v] is available", ip, hostname)
 			} else {
 				logrus.WithFields(fieldEgressPolicy(p)).
-					Infof("Egress IP %q is not available", ip)
+					Infof("Egress IP [%v] HostName [%v] is not available",
+						ip, hostname)
 				if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 					pp, err := h.cegpClient.Get(p.Name, metav1.GetOptions{})
 					if err != nil {
 						return err
 					}
 					pp = pp.DeepCopy()
-					pp.Spec.EgressGateway.EgressIP = availableIPs[0]
+					pp.Spec.EgressGateway.EgressIP = availableIP
+					if pp.Spec.EgressGateway.NodeSelector == nil {
+						pp.Spec.EgressGateway.NodeSelector = &slimv1.LabelSelector{}
+					}
+					if pp.Spec.EgressGateway.NodeSelector.MatchLabels == nil {
+						pp.Spec.EgressGateway.NodeSelector.MatchLabels = make(map[string]slimv1.MatchLabelsValue)
+					}
+					pp.Spec.EgressGateway.NodeSelector.MatchLabels[hostnameLabelKey] = availableHostname
 					_, err = h.cegpClient.Update(pp)
 					return err
 				}); err != nil {
 					return fmt.Errorf("failed to update %q egressGateway.egressIP to %q: %v",
-						p.Name, ip, err)
+						p.Name, availableIP, err)
 				}
 				logrus.WithFields(fieldEgressPolicy(p)).
-					Infof("Update CiliumEgressGatewayPolicy %q egressGateway.egressIP to %q",
-						p.Name, availableIPs[0])
+					Infof("Update CiliumEgressGatewayPolicy [%v] egressGateway.egressIP to [%v] with node hostname [%v]",
+						p.Name, availableIP, availableHostname)
 			}
 		}
-
-		// TODO: Cilium 1.18+ supports egressGateways configuration
-		// if len(p.Spec.EgressGateways) > 0 {
-		// 	gws := p.DeepCopy().Spec.EgressGateways
-		// 	availableGWs := make([]ciliumv2.EgressGateway, 0, len(gws))
-		// 	for _, gw := range gws {
-		// 		if gw.EgressIP == "" {
-		// 			continue
-		// 		}
-		// 		if gateway.NodeAvailable(gw.EgressIP) {
-		// 			availableGWs = append(availableGWs, gw)
-		// 		} else {
-		// 			logrus.WithFields(fieldEgressPolicy(p)).
-		// 				Infof("Egress IP %q is not available", gw.EgressIP)
-		// 		}
-		// 	}
-		// 	if len(availableGWs) == len(gws) {
-		// 		logrus.WithFields(fieldEgressPolicy(p)).
-		// 			Debugf("Policy EgressGateways are available, skip update")
-		// 	} else {
-		// 		if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		// 			pp, err := h.cegpClient.Get(p.Name, metav1.GetOptions{})
-		// 			if err != nil {
-		// 				return err
-		// 			}
-		// 			pp = pp.DeepCopy()
-		// 			pp.Spec.EgressGateways = availableGWs
-		// 			_, err = h.cegpClient.Update(pp)
-		// 			return err
-		// 		}); err != nil {
-		// 			return fmt.Errorf("failed to update %q egressGateways: %w",
-		// 				p.Name, err)
-		// 		}
-		// 		logrus.WithFields(fieldEgressPolicy(p)).
-		// 			Infof("Update CiliumEgressGatewayPolicy %q egressGateways",
-		// 				p.Name)
-		// 	}
-		// }
 	}
 
 	return nil
+}
+
+func getPolicyIP(p *ciliumv2.CiliumEgressGatewayPolicy) string {
+	if p == nil || p.Spec.EgressGateway == nil {
+		return ""
+	}
+	return p.Spec.EgressGateway.EgressIP
+}
+
+func getPolicyHostname(p *ciliumv2.CiliumEgressGatewayPolicy) string {
+	if p == nil || p.Spec.EgressGateway == nil || p.Spec.EgressGateway.NodeSelector == nil ||
+		p.Spec.EgressGateway.NodeSelector.MatchLabels == nil {
+		return ""
+	}
+	return p.Spec.EgressGateway.NodeSelector.MatchLabels[hostnameLabelKey]
 }
 
 func fieldEgressPolicy(p *ciliumv2.CiliumEgressGatewayPolicy) logrus.Fields {
