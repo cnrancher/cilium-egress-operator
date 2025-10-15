@@ -4,7 +4,7 @@ metadata:
   name: cilium-egress-operator
   namespace: {{ .Release.Namespace }}
 spec:
-  replicas: 2
+  replicas: {{ .Values.operator.replicas | default 2 }}
   selector:
     matchLabels:
       app: cilium-egress-operator
@@ -25,6 +25,12 @@ spec:
       - name: cilium-egress-operator
         image: {{ template "system_default_registry" . }}{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}
         imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+        command:
+        - cilium-egress-operator
+        args:
+        - --set-node-ip={{ .Values.operator.setNodeIP }}
+        - --set-node-label-selector={{ .Values.operator.setNodeLabelSelector }}
+        - --debug={{ .Values.operator.debug | default false }}
         env:
         - name: HTTP_PROXY
           value: {{ .Values.httpProxy }}
@@ -33,6 +39,6 @@ spec:
         - name: NO_PROXY
           value: {{ .Values.noProxy }}
         - name: CATTLE_RESYNC_DEFAULT
-          value: {{ .Values.operator.resyncDefault | quote }}
+          value: {{ .Values.operator.leaseResyncDefault | default "" | quote }}
         - name: CATTLE_DEV_MODE
-          value: {{ .Values.operator.debug | quote }}
+          value: {{ .Values.operator.cattleDevMode | default "" | quote }}

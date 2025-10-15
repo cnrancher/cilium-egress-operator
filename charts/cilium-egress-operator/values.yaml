@@ -3,8 +3,12 @@ global:
     systemDefaultRegistry: ""
 
 operator:
-  resyncDefault: ""
-  debug: ""
+  replicas: 2
+  debug: false
+  setNodeIP: false
+  setNodeLabelSelector: true
+  leaseResyncDefault: ""
+  cattleDevMode: ""
   image:
     repository: cnrancher/cilium-egress-operator
     tag: v0.1.0

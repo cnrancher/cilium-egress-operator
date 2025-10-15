@@ -15,11 +15,25 @@
     helm upgrade --install \
         -n kube-system \
         --set global.cattle.systemDefaultRegistry='registry.rancher.cn' \
+        --set operator.replicas=2 \
         --set operator.debug=true \
         --set operator.image.pullPolicy=IfNotPresent \
+        --set operator.setNodeIP=false \
+        --set operator.setNodeLabelSelector=true \
         cilium-egress-operator \
         ./cilium-egress-operator-*.tgz
     ```
+
+    Helm Chart Options:
+
+    | Name | Description |
+    |------|-------------|
+    | `global.cattle.systemDefaultRegistry` | Operator pod image registry |
+    | `operator.image.pullPolicy`           | Operator pod image pullPolicy |
+    | `operator.replicas`                   | Operator pod replicas |
+    | `operator.debug`                      | Enable operator pod debug output |
+    | `operator.setNodeIP`                  | Update policy egressIP to nodeIP |
+    | `operator.setNodeLabelSelector`       | Update policy node labelSelector to desired node hostname |
 
 1. Create the following example `CiliumEgressGatewayPolicy` with annotation `egress.cilium.pandaria.io/monitored=true`:
 
@@ -48,11 +62,9 @@
     After the node becomes unavailable, the `egressGateway.egressIP` and `egressGateway.nodeSelector.matchLabels` will be automatically updated to another available master node.
 
     ```log
-    [04:00:56] [INFO] [Lease:plndr-svcs-lock] [Node:cilium-master-hmwtd-2gwtc] Node [cilium-master-hmwtd-2gwtc] IP [192.168.0.104] is KubeVIP Leader Node
-    [04:00:56] [INFO] [EGP:test-policy29] Egress IP [192.168.0.145] HostName [cilium-master-hmwtd-dn4m5] is not available
-    [04:00:56] [INFO] [EGP:test-policy2] Egress IP [192.168.0.145] HostName [cilium-master-hmwtd-dn4m5] is not available
-    [04:00:56] [INFO] [EGP:policy-29] Update CiliumEgressGatewayPolicy [policy-29] egressGateway.egressIP to [192.168.0.104] with node hostname [cilium-master-hmwtd-2gwtc]
-    [04:00:56] [INFO] [EGP:test-policy2] Update CiliumEgressGatewayPolicy [test-policy2] egressGateway.egressIP to [192.168.0.104] with node hostname [cilium-master-hmwtd-2gwtc]
+    [08:00:00] [INFO] [Lease:plndr-svcs-lock] [Node:cilium-master-hmwtd-d8n7q] Node [cilium-master-hmwtd-d8n7q] IP [192.168.0.46] is KubeVIP Leader Node
+    [08:00:00] [INFO] [EGP:test-policy] Policy node hostname [cilium-master-hmwtd-dn4m5] is not available, set to [cilium-master-hmwtd-d8n7q]
+    [08:00:00] [DEBU] [EGP:test-policy] Policy EgressIP [192.168.0.154] HostName [cilium-master-hmwtd-d8n7q] is available
     ```
 
 1. Run `cilium-dbg` command in the Cilium DaemonSet Pod to ensure the pod gateway updated to the expected Node IP.
@@ -61,8 +73,8 @@
     $ kubectl -n kube-system exec -it cilium-xxxx -- bash
     root@cilium-worker-vgvbc-k8pqx:/home/cilium# cilium-dbg bpf egress list
     Source IP     Destination CIDR   Egress IP   Gateway IP
-    10.42.0.87    0.0.0.0/0          0.0.0.0     192.168.0.104
-    10.42.2.178   0.0.0.0/0          0.0.0.0     192.168.0.104
-    10.42.3.47    0.0.0.0/0          0.0.0.0     192.168.0.104
-    10.42.4.231   0.0.0.0/0          0.0.0.0     192.168.0.104
+    10.42.0.87    0.0.0.0/0          0.0.0.0     192.168.0.46
+    10.42.2.178   0.0.0.0/0          0.0.0.0     192.168.0.46
+    10.42.3.47    0.0.0.0/0          0.0.0.0     192.168.0.46
+    10.42.4.231   0.0.0.0/0          0.0.0.0     192.168.0.46
     ```

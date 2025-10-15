@@ -30,6 +30,13 @@ func init() {
 	}
 }
 
+func DebugPrint(a any) string {
+	if logrus.GetLevel() >= logrus.DebugLevel {
+		return Print(a)
+	}
+	return ""
+}
+
 func Print(a any) string {
 	b, _ := json.MarshalIndent(a, "", "  ")
 	return string(b)

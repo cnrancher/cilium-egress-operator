@@ -19,14 +19,16 @@ import (
 )
 
 var (
-	masterURL         string
-	kubeconfigFile    string
-	worker            int
-	version           bool
-	versionString     string
-	profileServer     bool
-	profileServerAddr string
-	debug             bool
+	masterURL            string
+	kubeconfigFile       string
+	worker               int
+	version              bool
+	versionString        string
+	setNodeIP            bool
+	setNodeLabelSelector bool
+	profileServer        bool
+	profileServerAddr    string
+	debug                bool
 )
 
 func init() {
@@ -46,6 +48,8 @@ func main() {
 		"The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.IntVar(&worker, "worker", 10, "Number of controller worker threads (1-50).")
 	flag.BoolVar(&version, "version", false, "Show version.")
+	flag.BoolVar(&setNodeIP, "set-node-ip", false, "Set CiliumEgressGatewayPolicy EgressIP to NodeIP.")
+	flag.BoolVar(&setNodeLabelSelector, "set-node-label-selector", true, "Set CiliumEgressGatewayPolicy NodeSelector to desired Node.")
 	flag.BoolVar(&profileServer, "profile-server", false, "Enable the Go pprof profiling HTTP server.")
 	flag.StringVar(&profileServerAddr, "profile-server-addr", "127.0.0.1:6060", "Profiling server listen address.")
 	flag.BoolVar(&debug, "debug", false, "Enable the debug output.")
@@ -87,7 +91,10 @@ func main() {
 	}
 
 	lease.Register(ctx, wctx)
-	cegp.Register(ctx, wctx)
+	cegp.Register(ctx, wctx, cegp.Options{
+		SetPolicyEgressIPToNodeIP: setNodeIP,
+		SetPolicyNodeSelector:     setNodeLabelSelector,
+	})
 	wctx.OnLeader(func(ctx context.Context) error {
 		logrus.Infof("Pod [%v] is leader, starting handlers", utils.Hostname())
 
