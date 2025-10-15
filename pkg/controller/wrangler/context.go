@@ -15,6 +15,8 @@ import (
 
 	"github.com/cnrancher/cilium-egress-operator/pkg/generated/controllers/cilium.io"
 	ciliumv2 "github.com/cnrancher/cilium-egress-operator/pkg/generated/controllers/cilium.io/v2"
+	"github.com/cnrancher/cilium-egress-operator/pkg/generated/controllers/coordination.k8s.io"
+	coordinationv1 "github.com/cnrancher/cilium-egress-operator/pkg/generated/controllers/coordination.k8s.io/v1"
 	"github.com/cnrancher/cilium-egress-operator/pkg/generated/controllers/core"
 	corecontroller "github.com/cnrancher/cilium-egress-operator/pkg/generated/controllers/core/v1"
 )
@@ -29,8 +31,9 @@ type Context struct {
 	Kubernetes        kubernetes.Interface
 	ControllerFactory controller.SharedControllerFactory
 
-	Core   corecontroller.Interface
-	Cilium ciliumv2.Interface
+	Core         corecontroller.Interface
+	Coordination coordinationv1.Interface
+	Cilium       ciliumv2.Interface
 
 	leadership *leader.Manager
 	starters   []start.Starter
@@ -43,6 +46,11 @@ func NewContext(restCfg *rest.Config) (*Context, error) {
 	if err != nil {
 		return nil, fmt.Errorf("core factory: %w", err)
 	}
+	coordination, err := coordination.NewFactoryFromConfigWithNamespace(restCfg, controllerNamespace)
+	if err != nil {
+		return nil, fmt.Errorf("coordination.k8s.io factory: %w", err)
+	}
+
 	cilium, err := cilium.NewFactoryFromConfig(restCfg)
 	if err != nil {
 		return nil, fmt.Errorf("cilium factory: %w", err)
@@ -63,13 +71,14 @@ func NewContext(restCfg *rest.Config) (*Context, error) {
 		Kubernetes:        k8s,
 		ControllerFactory: controllerFactory,
 
-		Core:   core.Core().V1(),
-		Cilium: cilium.Cilium().V2(),
+		Core:         core.Core().V1(),
+		Coordination: coordination.Coordination().V1(),
+		Cilium:       cilium.Cilium().V2(),
 
 		leadership: leadership,
 	}
 	c.starters = append(c.starters,
-		core, cilium)
+		core, coordination, cilium)
 
 	return c, nil
 }

@@ -9,7 +9,8 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/cnrancher/cilium-egress-operator/pkg/controller/nodes"
+	"github.com/cnrancher/cilium-egress-operator/pkg/controller/cegp"
+	"github.com/cnrancher/cilium-egress-operator/pkg/controller/lease"
 	"github.com/cnrancher/cilium-egress-operator/pkg/controller/wrangler"
 	"github.com/cnrancher/cilium-egress-operator/pkg/signal"
 	"github.com/cnrancher/cilium-egress-operator/pkg/utils"
@@ -85,16 +86,13 @@ func main() {
 		logrus.Fatalf("Failed to wait for cache synced: %v", err)
 	}
 
-	nodes.Register(ctx, wctx)
+	lease.Register(ctx, wctx)
+	cegp.Register(ctx, wctx)
 	wctx.OnLeader(func(ctx context.Context) error {
 		logrus.Infof("Pod [%v] is leader, starting handlers", utils.Hostname())
 
 		// Start controller when this pod becomes leader.
 		if err := wctx.StartHandler(ctx, worker); err != nil {
-			return err
-		}
-
-		if err := nodes.InitNodeIP(wctx); err != nil {
 			return err
 		}
 		return nil

@@ -48,14 +48,11 @@
     After the node becomes unavailable, the `egressGateway.egressIP` and `egressGateway.nodeSelector.matchLabels` will be automatically updated to another available master node.
 
     ```log
-    [10:39:44] [DEBU] [IP:192.168.0.46] [Node:cilium-master-hmwtd-d8n7q] Node is kube-vip master node
-    [10:39:44] [INFO] [IP:192.168.0.46] [Node:cilium-master-hmwtd-d8n7q] Node is not ready: NodeStatusUnknown
-    [10:39:44] [INFO] [IP:192.168.0.46] [Node:cilium-master-hmwtd-d8n7q] Node "cilium-master-hmwtd-d8n7q" is not ready
-    [10:39:44] [INFO] [EGP:test-policy] Egress IP [192.168.0.46] HostName [cilium-master-hmwtd-d8n7q] is not available
-    [10:39:45] [INFO] [EGP:test-policy] Update CiliumEgressGatewayPolicy [test-policy] egressGateway.egressIP to [192.168.0.57] with node hostname [cilium-master-hmwtd-5t82d]
-    [10:39:54] [DEBU] [IP:192.168.0.57] [Node:cilium-master-hmwtd-5t82d] Node is kube-vip master node
-    [10:39:54] [DEBU] [IP:192.168.0.57] [Node:cilium-master-hmwtd-5t82d] Node "cilium-master-hmwtd-5t82d" is ready
-    [10:39:54] [DEBU] [EGP:test-policy] Policy EgressIP [192.168.0.57] HostName [cilium-master-hmwtd-5t82d] is available
+    [04:00:56] [INFO] [Lease:plndr-svcs-lock] [Node:cilium-master-hmwtd-2gwtc] Node [cilium-master-hmwtd-2gwtc] IP [192.168.0.104] is KubeVIP Leader Node
+    [04:00:56] [INFO] [EGP:test-policy29] Egress IP [192.168.0.145] HostName [cilium-master-hmwtd-dn4m5] is not available
+    [04:00:56] [INFO] [EGP:test-policy2] Egress IP [192.168.0.145] HostName [cilium-master-hmwtd-dn4m5] is not available
+    [04:00:56] [INFO] [EGP:policy-29] Update CiliumEgressGatewayPolicy [policy-29] egressGateway.egressIP to [192.168.0.104] with node hostname [cilium-master-hmwtd-2gwtc]
+    [04:00:56] [INFO] [EGP:test-policy2] Update CiliumEgressGatewayPolicy [test-policy2] egressGateway.egressIP to [192.168.0.104] with node hostname [cilium-master-hmwtd-2gwtc]
     ```
 
 1. Run `cilium-dbg` command in the Cilium DaemonSet Pod to ensure the pod gateway updated to the expected Node IP.
@@ -64,8 +61,8 @@
     $ kubectl -n kube-system exec -it cilium-xxxx -- bash
     root@cilium-worker-vgvbc-k8pqx:/home/cilium# cilium-dbg bpf egress list
     Source IP     Destination CIDR   Egress IP   Gateway IP
-    10.42.0.87    0.0.0.0/0          0.0.0.0     192.168.0.57
-    10.42.2.178   0.0.0.0/0          0.0.0.0     192.168.0.57
-    10.42.3.47    0.0.0.0/0          0.0.0.0     192.168.0.57
-    10.42.4.231   0.0.0.0/0          0.0.0.0     192.168.0.57
+    10.42.0.87    0.0.0.0/0          0.0.0.0     192.168.0.104
+    10.42.2.178   0.0.0.0/0          0.0.0.0     192.168.0.104
+    10.42.3.47    0.0.0.0/0          0.0.0.0     192.168.0.104
+    10.42.4.231   0.0.0.0/0          0.0.0.0     192.168.0.104
     ```

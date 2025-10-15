@@ -13,6 +13,11 @@ import (
 	"github.com/sirupsen/logrus/hooks/writer"
 )
 
+const (
+	WatchAnnotationPrefix = "egress.cilium.pandaria.io/monitored"
+	WatchAnnotationValue  = "true"
+)
+
 var (
 	hostname string
 )

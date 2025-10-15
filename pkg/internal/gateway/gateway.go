@@ -1,76 +1,53 @@
 package gateway
 
 import (
-	"maps"
 	"sync"
 )
 
 type store struct {
-	nodes map[string]string // map[NodeIP]Hostname
+	leaderNode   string
+	leaderNodeIP string
 
 	mu *sync.RWMutex
 }
 
 var s = store{
-	nodes: make(map[string]string),
-	mu:    new(sync.RWMutex),
+	mu: new(sync.RWMutex),
 }
 
-func (s *store) availableNodes() map[string]string {
+func (s *store) getLeaderNode() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return maps.Clone(s.nodes)
+	return s.leaderNode
 }
 
-func (s *store) availableNode() (string, string) {
+func (s *store) getLeaderNodeIP() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	for ip, hostname := range s.nodes {
-		if ip == "" || hostname == "" {
-			continue
-		}
-		return ip, hostname
-	}
-	return "", ""
+	return s.leaderNodeIP
 }
 
-func (s *store) recordNode(ip, hostname string, available bool) {
+func (s *store) setLeaderNode(ip, hostname string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !available {
-		delete(s.nodes, ip)
-		return
-	}
+
 	if ip == "" || hostname == "" {
 		return
 	}
-	s.nodes[ip] = hostname
+	s.leaderNode = hostname
+	s.leaderNodeIP = ip
 }
 
-func (s *store) nodeAvailable(ip, hostname string) bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if ip == "" || hostname == "" {
-		return false
-	}
-	return s.nodes[ip] == hostname
+func LeaderNode() string {
+	return s.getLeaderNode()
 }
 
-func RecordNode(ip, hostname string, available bool) {
-	s.recordNode(ip, hostname, available)
+func LeaderNodeIP() string {
+	return s.getLeaderNodeIP()
 }
 
-func NodeAvailable(ip, hostname string) bool {
-	return s.nodeAvailable(ip, hostname)
-}
-
-func AvailableNodes() map[string]string {
-	return s.availableNodes()
-}
-
-func AvailableNode() (string, string) {
-	return s.availableNode()
+func SetLeaderNode(ip, hostname string) {
+	s.setLeaderNode(ip, hostname)
 }
