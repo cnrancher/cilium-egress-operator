@@ -4,7 +4,7 @@
 {{- if .Values.global.cattle.systemDefaultRegistry -}}
 {{- printf "%s/" .Values.global.cattle.systemDefaultRegistry -}}
 {{- else -}}
-{{- "" -}}
+{{- "registry.rancher.cn/" -}}
 {{- end -}}
 {{- end -}}
 
