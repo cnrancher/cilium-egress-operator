@@ -9,8 +9,7 @@
   </p>
 </div>
 
-
-Operator for automatically switching [Cilium Egress Gateway Endpoints](https://docs.cilium.io/en/stable/network/egress-gateway/egress-gateway/).
+Operator to automatically manage [Cilium](https://docs.cilium.io/en/stable/) `CiliumEgressGatewayPolicy` egress and gateway policies in [kube-vip](https://kube-vip.io) cluster, eliminating kube-vip master node changes and gateway node failover issues, ensuring highly available and reliable pod egress network traffic.
 
 ## Documents
 
